@@ -5,44 +5,74 @@
       x : null , y : null
     },
     "cannon" : {
-      src : "images/dot/cannon.png",
+      type : "bit",
+      fill : "black",
+      bitSize : 4,
+      src : "images/dot/cannon.dot",
       x : 10, y : 200,
+      w : 64, h : 64,
+      moveX : 10
+    },
+    "uso" : {
+      type : "bit",
+      fill : "black",
+      bitSize : 4,
+      src : "images/dot/ufo.dot",
+      x : 10, y : 10,
       w : 64, h : 64,
       moveX : 10
     },
     "invader" : {
       "crab" : [
         {
-          src : "images/dot/crab_1.png",
+          type : "bit",
+          fill : "black",
+          src : 'images/dot/crab_1.dot',
+          bitSize : 4,
           x : 10, y : 64,
           w : 64, h : 64
         },
         {
-          src : "images/dot/crab_2.png",
+          type : "bit",
+          fill : "black",
+          src : "images/dot/crab_2.dot",
+          bitSize : 4,
           x : 10, y : 64,
           w : 64, h : 64
         }
       ],
       "octpus" : [
         {
-          src : "images/dot/octpus_1.png",
+          type : "bit",
+          fill : "black",
+          src : "images/dot/octpus_1.dot",
+          bitSize : 4,
           x : 80, y : 64,
           w : 64, h : 64
         },
         {
-          src : "images/dot/octpus_2.png",
+          type : "bit",
+          fill : "black",
+          src : "images/dot/octpus_2.dot",
+          bitSize : 4,
           x : 80, y : 64,
           w : 64, h : 64
         }
       ],
       "squid" : [
         {
-          src : "images/dot/squid_1.png",
+          type : "bit",
+          fill : "black",
+          bitSize : 4,
+          src : "images/dot/squid_1.dot",
           x : 150, y : 64,
           w : 64, h : 64
         },
         {
-          src : "images/dot/squid_2.png",
+          type : "bit",
+          fill : "black",
+          bitSize : 4,
+          src : "images/dot/squid_2.dot",
           x : 150, y : 64,
           w : 64, h : 64
         }
@@ -84,8 +114,6 @@
     this.ctx.mozImageSmoothingEnabled    = false;
     this.ctx.webkitImageSmoothingEnabled = false;
     this.ctx.msImageSmoothingEnabled     = false;
-
-
   };
 
   
@@ -108,25 +136,89 @@
   MAIN.prototype.image_cache = [];
   MAIN.prototype.image = function(options){
     if(!this.canvas_elm){return;}
+   
     if(!options){return;}
     // 新規読み込み
     if(typeof this.image_cache[options.src] === "undefined"){
-      this.image_cache[options.src] = new Image();
-      var img = this.image_cache[options.src];
-      img.src = options.src;
-      img.onload = (function(options){
-        this.image_draw(options , img);
-      }).bind(this , options);
+      switch(options.type){
+        case "file":
+          this.image_file_set(options);
+          break;
+        case "bit":
+          this.image_bit_set(options);
+          break;
+      }
     }
     // キャッシュ利用
     else{
-      this.image_draw(options , img);
+      switch(options.type){
+        case "file":
+          this.image_draw(options);
+          break;
+        case "bit":
+          this.image_bit_make(options);
+          break;
+      }
+      
     }
     
   };
+  MAIN.prototype.image_file_set = function(options){
+    this.image_cache[options.src] = new Image();
+    var img = this.image_cache[options.src];
+    img.src = options.src;
+    img.onload = (function(options){
+      this.image_draw(options , img);
+    }).bind(this , options);
+  };
+
+  MAIN.prototype.image_bit_set = function(options){
+    this.image_cache[options.src] = "";
+    new AJAX({
+      url       : options.src,
+      methdo    : "GET",
+      async     : true,
+      onSuccess : (function(options , data){
+        var char16 = data.split("\n");
+        options.bits = [];
+        for(var i in char16){
+          // 16進数を２進数に変換
+          var char2 = parseInt(char16[i] , 16).toString(2);
+          // ゼロパディング用桁数算出
+          var str_count = Math.pow(char16[i].length , 2);
+          var zero = new Array(str_count).fill("0").join("")
+          // サイズ取得
+          // options.bitSize = Math.ceil(options.w / str_count * 10) / 10;
+          options.bitSize = options.w / str_count;
+          // char2
+          char2 = (zero + char2).slice(-str_count);
+          options.bits.push(char2);
+        }
+        this.image_bit_make(options);
+      }).bind(this , options)
+    });
+  };
+  MAIN.prototype.image_bit_make = function(options){
+    if(!options.bits){return;}
+    this.ctx.fillStyle   = options.fill;
+    this.ctx.strokeStyle = null;
+    this.ctx.strikeWidth = 0;
+    for(var i=0; i<options.bits.length; i++){
+      for(var j=0; j<options.bits[i].length; j++){
+        var bit = options.bits[i].charAt(j);
+        if(bit == 0){continue;}
+        var w = options.bitSize;
+        var h = options.bitSize;
+        var x = options.x + (j * w);
+        var y = options.y + (i * h);
+        this.ctx.fillRect(x , y , Math.ceil(w) , Math.ceil(h));
+      }
+    }
+  };
+
 
   MAIN.prototype.image_draw = function(options){
-    if(typeof this.image_cache[options.src] === "undefined"){return}
+    if(typeof this.image_cache[options.src] !== "object"){return}
     var img = this.image_cache[options.src];
     this.ctx.drawImage(img , options.x, options.y ,options.w , options.h);
   };
@@ -256,6 +348,94 @@
     if (target.addEventListener){target.addEventListener(mode, func, flg)}
     else{target.attachEvent('on' + mode, function(){func.call(target , window.event)})}
   };
+
+  var AJAX = function(option){//console.log(option);
+    if(!option){return}
+		var httpoj = this.createHttpRequest();
+    if(!httpoj){return;}
+    
+		// var option = new MAIN().setOption(options);
+		var data   = this.setQuery(option);
+		if(!data.length){
+			option.method = "get";
+		}
+
+		httpoj.open( option.method , option.url , option.async );
+    httpoj.setRequestHeader('Content-Type', option.type);
+		
+		httpoj.onreadystatechange = function(){
+			if (this.readyState==4 && httpoj.status == 200){
+				option.onSuccess(this.responseText);
+			}
+		};
+
+		// FormData 送信用
+		if(typeof option.form === "object" && Object.keys(option.form).length){
+			httpoj.send(option.form);
+		}
+		// query整形後 送信
+		else{
+			if(data.length){
+				httpoj.send(data.join("&"));
+			}
+			else{
+				httpoj.send();
+			}
+		}
+  };
+	AJAX.prototype.dataOption = {
+		url:"",
+		query:{},
+		querys:[],
+		data:{},
+		form:{},
+		async:"true",
+		method:"POST",
+		type:"application/x-www-form-urlencoded",
+		onSuccess:function(res){},
+		onError:function(res){}
+	};
+	AJAX.prototype.createHttpRequest = function(){
+		//Win ie用
+		if(window.ActiveXObject){
+			//MSXML2以降用;
+			try{return new ActiveXObject("Msxml2.XMLHTTP")}
+			catch(e){
+				//旧MSXML用;
+				try{return new ActiveXObject("Microsoft.XMLHTTP")}
+				catch(e2){return null}
+			}
+		}
+		//Win ie以外のXMLHttpRequestオブジェクト実装ブラウザ用;
+		else if(window.XMLHttpRequest){return new XMLHttpRequest()}
+		else{return null}
+  };
+  // URL-Queryの作成
+  AJAX.prototype.setQuery = function(option){
+		var data = [];
+		if(typeof option.datas !== "undefined"){
+			for(var key of option.datas.keys()){
+				data.push(key + "=" + option.datas.get(key));
+			}
+		}
+		if(typeof option.query !== "undefined"){
+			for(var i in option.query){
+				data.push(i+"="+encodeURIComponent(option.query[i]));
+			}
+		}
+		if(typeof option.querys !== "undefined"){
+			for(var i=0;i<option.querys.length;i++){
+				if(typeof option.querys[i] == "Array"){
+					data.push(option.querys[i][0]+"="+encodeURIComponent(option.querys[i][1]));
+				}
+				else{
+					var sp = option.querys[i].split("=");
+					data.push(sp[0]+"="+encodeURIComponent(sp[1]));
+				}
+			}
+		}
+    return data;
+  }
 
 
 
