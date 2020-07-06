@@ -6,7 +6,7 @@
     },
     "cannon" : {
       type : "bit",
-      fill : "black",
+      fill : "#57F2D6",
       bitSize : 4,
       src : "images/dot/cannon.dot",
       x : 10, y : 200,
@@ -15,7 +15,7 @@
     },
     "uso" : {
       type : "bit",
-      fill : "black",
+      fill : "white",
       bitSize : 4,
       src : "images/dot/ufo.dot",
       x : 10, y : 10,
@@ -26,7 +26,7 @@
       "crab" : [
         {
           type : "bit",
-          fill : "black",
+          fill : "#F22786",
           src : 'images/dot/crab_1.dot',
           bitSize : 4,
           x : 10, y : 64,
@@ -34,7 +34,7 @@
         },
         {
           type : "bit",
-          fill : "black",
+          fill : "#F22786",
           src : "images/dot/crab_2.dot",
           bitSize : 4,
           x : 10, y : 64,
@@ -44,7 +44,7 @@
       "octpus" : [
         {
           type : "bit",
-          fill : "black",
+          fill : "#57F2D6",
           src : "images/dot/octpus_1.dot",
           bitSize : 4,
           x : 80, y : 64,
@@ -52,7 +52,7 @@
         },
         {
           type : "bit",
-          fill : "black",
+          fill : "#57F2D6",
           src : "images/dot/octpus_2.dot",
           bitSize : 4,
           x : 80, y : 64,
@@ -62,7 +62,7 @@
       "squid" : [
         {
           type : "bit",
-          fill : "black",
+          fill : "#68F205",
           bitSize : 4,
           src : "images/dot/squid_1.dot",
           x : 150, y : 64,
@@ -70,7 +70,7 @@
         },
         {
           type : "bit",
-          fill : "black",
+          fill : "#68F205",
           bitSize : 4,
           src : "images/dot/squid_2.dot",
           x : 150, y : 64,
@@ -83,18 +83,20 @@
 
   var MAIN = function(canvas_selector){
     this.canvas_selector = canvas_selector || "canvas";
-    
+
+    this.shoots = [];
     this.setCanvas(this.canvas_selector);
     this.set_imageMax();
     this.pattern = 0;
     this.view(this.pattern);
     this.event_set();
-
     this.animation_roop(30);
   };
 
   MAIN.prototype.setCanvas = function(selector){
     this.canvas_elm = d.querySelector(selector);
+    if(!this.canvas_elm){return;}
+    this.canvas_elm.style.setProperty("background-color","black","");
     
     if(w.innerWidth < this.canvas_elm.offsetWidth){
       this.canvas_elm.setAttribute("width" , w.innerWidth);
@@ -188,9 +190,7 @@
           var str_count = Math.pow(char16[i].length , 2);
           var zero = new Array(str_count).fill("0").join("")
           // サイズ取得
-          // options.bitSize = Math.ceil(options.w / str_count * 10) / 10;
           options.bitSize = options.w / str_count;
-          // char2
           char2 = (zero + char2).slice(-str_count);
           options.bits.push(char2);
         }
@@ -250,7 +250,26 @@
         this.cannon_move(__options.cannon.x - __options.cannon.moveX);
         break;
     }
+
+    this.animation_shoot();
   };
+
+  MAIN.prototype.animation_shoot = function(){
+    if(!this.shoots.length){return;}
+    for(var i in this.shoots){
+      var w = 1 * __options.cannon.bitSize;
+      var h = 2 * __options.cannon.bitSize;
+      if(this.shoots[i].y < h){
+        this.shoots.splice(i,1);
+      }
+      else{
+        this.ctx.fillStyle   = "white";
+        this.ctx.fillRect(this.shoots[i].x , this.shoots[i].y , w , h);
+        this.shoots[i].y -= __options.cannon.bitSize * 2;
+      }
+    }
+  };
+
   MAIN.prototype.cannon_move = function(pos){
     if(pos < 0){
       pos = 0;
@@ -288,7 +307,7 @@
   /* Event */
 
   MAIN.prototype.event_set = function(){
-    // new LIB().event(window , "click"      , (function(e){this.click(e)}).bind(this));
+    new LIB().event(w , "click"      , (function(e){this.click(e)}).bind(this));
     new LIB().event(w , "keydown"    , (function(e){this.keydown(e)}).bind(this));
     new LIB().event(w , "keyup"      , (function(e){this.keyup(e)}).bind(this));
     new LIB().event(w , "mousemove"  , (function(e){this.mousemove(e)}).bind(this));
@@ -296,7 +315,21 @@
     new LIB().event(w , "touchend"   , (function(e){this.touchend(e)}).bind(this));
   };
 
-  MAIN.prototype.keydown = function(e){
+  MAIN.prototype.click = function(e){
+    // if(this.flg_gamestart === true){return}
+    this.shoot_add();
+  };
+
+  MAIN.prototype.shoot_add = function(){
+    if(this.shoots.length < 2){
+      this.shoots.push({
+        x : __options.cannon.x + (__options.cannon.w / 2),
+        y : __options.cannon.y + (__options.cannon.bitSize * 4)
+      });
+    }
+  };
+
+  MAIN.prototype.keydown = function(e){console.log(e.keyCode);
     switch(e.keyCode){
       case 37:  // <-
       case 'ArrowLeft':
@@ -306,6 +339,10 @@
       case 39:  // ->
       case 'ArrowRight':
       this.keydown_flg = "right";
+      break;
+
+      case 32:  // space
+      this.shoot_add();
       break;
     }
   };
