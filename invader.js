@@ -5,29 +5,33 @@
     bitmap_size : { w : 48 , h : 48},
 
     cannon : {
+      type  : "cannon",
       color : "#57F2D6",
       bitSize : 4,
-      src : "images/dot/cannon.dot",
+      src   : "images/dot/cannon.dot",
       x : 0 , y : 0,
       moveX : 10
     },
-    uso : {
+    ufo : {
+      type  : "ufo",
       color : "white",
-      src : "images/dot/ufo.dot",
+      src   : "images/dot/ufo.dot",
       x : 0 , y : 0,
       moveX : 10
     },
     bullet : {
+      type  : "bullet",
       color : "white",
-      src : "images/dot/bullet.dot",
+      src   : "images/dot/bullet.dot",
       x : 0 , y : 0,
       moveX : 10
     },
 
     tochika : {
+      type  : "tochika",
       color : "red",
-      src : "images/dot/tochika.dot",
-      w : 72
+      src   : "images/dot/tochika.dot",
+      w     : 72
     },
     
     invader_src : {
@@ -50,7 +54,13 @@
       { invader : "crab"  , color : "#57F2D6"},
       { invader : "octpus", color : "#57F2D6"},
       { invader : "octpus", color : "#F22786"}
-    ]
+    ],
+    invader_config : {
+      type   : "invader",
+      margin : 10, // display-margin
+      move_x : 4, // [1:right , -1:left]
+      move_y : 4
+    }
   };
 
   var MAIN = function(canvas_selector){
@@ -63,7 +73,7 @@
     this.event_set();
     this.bitmap_load();
     this.view();
-    this.animation_roop(30);
+    this.animation_roop();
   };
 
   MAIN.prototype.setCanvas = function(selector){
@@ -82,7 +92,7 @@
     __options.canvas_size.y = this.canvas_elm.offsetHeight;
     __options.cannon.y      = __options.canvas_size.y - 100;
 
-    // smooth
+    // smooth-off
     this.ctx = this.canvas_elm.getContext("2d");
     this.ctx.imageSmoothingEnabled       = false;
     this.ctx.mozImageSmoothingEnabled    = false;
@@ -107,7 +117,7 @@
       this.image_bit_set(bitmap_files[i]);
     }
     this.image_bit_set(__options.cannon.src);
-    this.image_bit_set(__options.uso.src);
+    this.image_bit_set(__options.ufo.src);
     this.image_bit_set(__options.bullet.src);
     this.image_bit_set(__options.tochika.src , __options.tochika.w);
   };
@@ -117,7 +127,7 @@
     this.view_invader();
 
     // canon
-    this.image(__options.cannon , "cannon");
+    this.image(__options.cannon);
 
     // tochika
     this.view_tochika();
@@ -135,6 +145,7 @@
   };
 
   MAIN.prototype.view_tochika = function(){
+    // 配置間隔
     var rate = 2.5;
     // 配置計算
     var tochika_count = Math.floor(this.canvas_elm.offsetWidth / (__options.tochika.w * rate));
@@ -152,7 +163,7 @@
 
   MAIN.prototype.init_invaders_info = function(){
     // 配置マージン
-    margin = 10;
+    margin = __options.invader_config.margin;
     // 配置個数（w）
     var count_w = Math.floor((__options.canvas_size.x - margin * 2) / __options.bitmap_size.w) -2;
 
@@ -198,21 +209,24 @@
       methdo    : "GET",
       async     : true,
       onSuccess : (function(src , bitmap_size , data){
-        var char16    = data.split("\n");
-        var str_count = char16[0].length * 4;
-        var size      = bitmap_size / str_count;
-        // ゼロパディング用桁数算出
-        var zero = new Array(str_count).fill("0").join("")
-        for(var i in char16){
-          // 16進数を２進数に変換
-          var char2 = parseInt(char16[i] , 16).toString(2);
-          // サイズ取得
-          this.image_cache[src].bitsize = size;
-          char2 = (zero + char2).slice(-str_count);
-          this.image_cache[src].bitmap.push(char2);
-        }
+        this.image_bit_loaded(src , bitmap_size , data);
       }).bind(this , src , bitmap_size)
     });
+  };
+  MAIN.prototype.image_bit_loaded = function(src , bitmap_size , data){
+    var char16    = data.split("\n");
+    var str_count = char16[0].length * 4;
+    var size      = bitmap_size / str_count;
+    // ゼロパディング用桁数算出
+    var zero = new Array(str_count).fill("0").join("")
+    for(var i in char16){
+      // 16進数を２進数に変換
+      var char2 = parseInt(char16[i] , 16).toString(2);
+      // サイズ取得
+      this.image_cache[src].bitsize = size;
+      char2 = (zero + char2).slice(-str_count);
+      this.image_cache[src].bitmap.push(char2);
+    }
   };
   MAIN.prototype.image_bit_make = function(options){
     if(typeof this.image_cache[options.src]         === "undefined"
@@ -222,8 +236,6 @@
     var bitmap  = this.image_cache[options.src].bitmap;
     var bitsize = this.image_cache[options.src].bitsize;
     this.ctx.fillStyle   = options.color;
-    // this.ctx.strokeStyle = null;
-    // this.ctx.strokeWidth = 0;
     for(var i=0; i<bitmap.length; i++){
       for(var j=0; j<bitmap[i].length; j++){
         var bit = bitmap[i].charAt(j);
@@ -308,7 +320,84 @@
     if(this.pattern >= this.image_max){
       this.pattern = 0;
     }
+
+    this.invader_move();
   };
+
+  MAIN.prototype.invader_move = function(){
+    // 左端の情報取得
+    var window_min = __options.invader_config.margin;
+    var window_max = this.canvas_elm.offsetWidth - __options.invader_config.margin;
+    var pos        = this.invader_pos();
+    var move_x     = __options.invader_config.move_x;
+    var move_y     = 0;
+    var w          = __options.bitmap_size.w;
+
+    // move y
+    if(typeof this.move_y_count !== "undefined" && this.move_y_count > 0){
+      this.move_y_count -= 1;
+      move_y = __options.invader_config.move_y;
+      move_x = 0;
+    }
+    // Dead end ->
+    else if(move_x > 0 && pos.max > window_max){
+      // move_x = window_max - pos.max;
+      this.move_y_count = 1;
+      __options.invader_config.move_x = -__options.invader_config.move_x;
+      move_x = 0;
+      move_y = __options.invader_config.move_y;
+    }
+    // <- Dead end
+    else if(move_x < 0 && pos.min < window_min){
+      // move_x = window_min - pos.min;
+      this.move_y_count = 1;
+      __options.invader_config.move_x = -__options.invader_config.move_x;
+      move_x = 0;
+      move_y = __options.invader_config.move_y;
+    }
+    this.invader_move_set(move_x , move_y);
+  };
+
+  // mode @ [min : 一番左端のinvaderの座標を取得 . max : 一番右端のinvaderの座標を取得]
+  MAIN.prototype.invader_pos = function(mode){
+    var min = null;
+    var max = null;
+    var inv = __options.invaders;
+    var w   = __options.bitmap_size.w;
+    for(var i in inv){
+      for(var j in inv[i]){
+        if(min === null || min > inv[i][j][0].x){
+          min = inv[i][j][0].x;
+        }
+        if(max === null || max < inv[i][j][0].x + w){
+          max = inv[i][j][0].x + w;
+        }
+      }
+    }
+    if(mode === "min"){
+      return min;
+    }
+    else if(mode === "max"){
+      return max;
+    }
+    else{
+      return {min : min , max : max};
+    }
+  };
+
+  MAIN.prototype.invader_move_set = function(x,y){
+    var inv = __options.invaders;
+    var w   = __options.bitmap_size.w;
+    for(var i in inv){
+      for(var j in inv[i]){
+        for(var k in inv[i][j]){
+          inv[i][j][k].x += x;
+          inv[i][j][k].y += y;
+        }
+      }
+    }
+  };
+
 
   MAIN.prototype.set_imageMax = function(){
     for(var i in __options.invader_src){
