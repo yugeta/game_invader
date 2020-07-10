@@ -32,7 +32,8 @@
     tochika : {
       color : "red",
       src   : "images/dot/tochika.dot",
-      w     : 72
+      w     : 72,
+      rate  : 2.5
     },
     
     invader_src : {
@@ -156,19 +157,25 @@
   };
 
   MAIN.prototype.view_tochika = function(){
+    if(typeof this.image_cache[__options.tochika.src] === "undefined"
+    || typeof this.image_cache[__options.tochika.src].bitmap === "undefined"
+    || !this.image_cache[__options.tochika.src].bitmap.length){return;}
+    if(typeof __options.tochikas === "undefined"){
+      this.init_tochilas_info();
+    }
     // 配置間隔
-    var rate = 2.5;
+    var rate = __options.tochika.rate;
     // 配置計算
     var tochika_count = Math.floor(this.canvas_elm.offsetWidth / (__options.tochika.w * rate));
     var margin = (this.canvas_elm.offsetWidth - ((__options.tochika.w * rate) * tochika_count)) / 2;
     var centering = __options.tochika.w * (rate - 1) /2;
     var y = this.canvas_elm.offsetHeight - 170;
-    for(var i=0; i<tochika_count; i++){
-      var x = margin + ((__options.tochika.w * rate) * i) + centering;
-      var option = JSON.parse(JSON.stringify(__options.tochika));
-      option.x = x;
-      option.y = y;
-      this.image(option);
+    for(var i in __options.tochikas){
+      __options.tochikas[i].x = margin + ((__options.tochika.w * rate) * i) + centering;
+      __options.tochikas[i].y = y;
+      __options.tochikas[i].bitsize = __options.tochikas[i].bitsize || this.image_cache[__options.tochika.src].bitsize;
+      __options.tochikas[i].h = __options.tochikas[i].bitsize * __options.tochikas[i].bitmap.length;
+      this.image(__options.tochikas[i]);
     }
   };
 
@@ -198,13 +205,43 @@
       }
     }
   };
+  MAIN.prototype.init_tochilas_info = function(){
+    __options.tochikas = [];
+    var rate = __options.tochika.rate;
+    var tochika_count = Math.floor(this.canvas_elm.offsetWidth / (__options.tochika.w * rate));
+    var bitmap = this.image_cache[__options.tochika.src].bitmap;
+    for(var i=0; i<tochika_count; i++){
+      __options.tochikas.push({
+        src     : __options.tochika.src,
+        color   : __options.tochika.color,
+        bitmap  : JSON.parse(JSON.stringify(bitmap))
+      });
+    }
+  };
 
   MAIN.prototype.image_cache = [];
   MAIN.prototype.image = function(options){
     if(!this.canvas_elm){return;}
     if(!options){return;}
-    if(typeof this.image_cache[options.src] !== "undefined"){
-      this.image_bit_make(options);
+    if(typeof this.image_cache[options.src] === "undefined"){return}
+    var bitmap  = this.get_bitmap(options);
+    var bitsize = this.get_bitsize(options);
+    this.image_bit_make(bitmap , bitsize , options.color , options.x , options.y);
+  };
+
+  MAIN.prototype.get_bitmap = function(option){
+    if(typeof option.bitmap !== "undefined"){
+      return option.bitmap;
+    }
+    else if(typeof this.image_cache[option.src] !== "undefined"
+    && typeof this.image_cache[option.src].bitmap !== "undefined"){
+      return this.image_cache[option.src].bitmap;
+    }
+  };
+  MAIN.prototype.get_bitsize = function(option){
+    if(typeof this.image_cache[option.src] !== "undefined"
+    || typeof this.image_cache[option.src].bitsize !== "undefined"){
+      return this.image_cache[option.src].bitsize;
     }
   };
 
@@ -239,23 +276,17 @@
       this.image_cache[src].bitmap.push(char2);
     }
   };
-  MAIN.prototype.image_bit_make = function(options){
-    if(typeof this.image_cache[options.src]         === "undefined"
-    || typeof this.image_cache[options.src].bitmap  === "undefined"
-    || typeof this.image_cache[options.src].bitsize === "undefined"){return;}
-
-    var bitmap  = this.image_cache[options.src].bitmap;
-    var bitsize = this.image_cache[options.src].bitsize;
-    this.ctx.fillStyle   = options.color;
+  MAIN.prototype.image_bit_make = function(bitmap , bitsize , color , x , y){
+    if(!bitmap){return;}
+    color = color || "white";
+    this.ctx.fillStyle = color;
     for(var i=0; i<bitmap.length; i++){
       for(var j=0; j<bitmap[i].length; j++){
         var bit = bitmap[i].charAt(j);
         if(bit == 0){continue;}
         var w = bitsize;
         var h = bitsize;
-        var x = options.x + (j * w);
-        var y = options.y + (i * h);
-        this.ctx.fillRect(x , y , Math.ceil(w) , Math.ceil(h));
+        this.ctx.fillRect(x+(j * w) , y+(i * h) , Math.ceil(w) , Math.ceil(h));
       }
     }
   };
@@ -296,7 +327,10 @@
       var w = 1 * __options.cannon.bitSize;
       var h = 2 * __options.cannon.bitSize;
       // collision
-      if(this.shoot_collision(this.shoots[i].x , this.shoots[i].y , w , h)){
+      if(this.shoot_collision_tochika(this.shoots[i].x , this.shoots[i].y , w , h)){
+        this.shoots.splice(i,1);
+      }
+      else if(this.shoot_collision_invader(this.shoots[i].x , this.shoots[i].y , w , h)){
         this.shoots.splice(i,1);
       }
       else if(this.shoots[i].y < h){
@@ -310,7 +344,7 @@
     }
   };
 
-  MAIN.prototype.shoot_collision = function(x , y , w , h){
+  MAIN.prototype.shoot_collision_invader = function(x , y , w , h){
     var inv = __options.invaders;
     for(var i in inv){
       for(var j in inv[i]){
@@ -328,6 +362,48 @@
         }
       }
     }
+  };
+
+  MAIN.prototype.shoot_collision_tochika = function(x , y , w , h){
+    for(var i in __options.tochikas){
+      var tx = __options.tochikas[i].x;
+      var ty = __options.tochikas[i].y;
+      var tw = __options.tochika.w;
+      var th = __options.tochikas[i].h;
+      if(tx <= x && x + w <= tx + tw
+      && ty <= y + h && y <= ty + th){
+        return this.tochika_scrape_shoot(__options.tochikas[i] , x , y);
+      }
+    }
+  };
+
+  MAIN.prototype.tochika_scrape_shoot = function(tochika_data , shoot_x , shoot_y){
+    // 衝突したtochikaの下部分を検出
+    var x = shoot_x - tochika_data.x;
+    var y = shoot_y - tochika_data.y;
+    var dot_x = parseInt(x / tochika_data.bitsize , 10);
+    var dot_y = parseInt(y / tochika_data.bitsize , 10);
+    // 当たった座標のドット部分を選択
+    if(tochika_data.bitmap[dot_y][dot_x] == 1){
+      // 衝突箇所以下を削除
+      for(var i=tochika_data.bitmap.length-1; i>=dot_y; i--){
+        if(tochika_data.bitmap[i][dot_x] != 1){continue;}
+        var str = tochika_data.bitmap[i];
+        tochika_data.bitmap[i] = str.slice(0,dot_x).concat("0",str.slice(dot_x+1));
+        return true;
+      }
+    }
+    // for(var i=tochika_data.bitmap.length-1; i>=0; i--){
+    //   console.log();
+    //   if(tochika_data.bitmap[i][dot_x] != 1){continue;}
+    //   // bitmapから下2ドット分を削除
+    //   var str = tochika_data.bitmap[i];
+    //   tochika_data.bitmap[i] = str.slice(0,dot_x).concat("0",str.slice(dot_x+1));
+    //   // tochika_data.bitmap[i] = "000000000000000000000000";
+    //   // tochika_data.bitmap[i-1][dot_x] = 0;
+    //   return true;
+    // }
+    return false;
   };
 
   MAIN.prototype.cannon_move = function(pos){
