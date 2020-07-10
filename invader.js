@@ -5,7 +5,6 @@
     bitmap_size : { w : 48 , h : 48},
 
     cannon : {
-      type  : "cannon",
       color : "#57F2D6",
       bitSize : 4,
       src   : "images/dot/cannon.dot",
@@ -13,22 +12,24 @@
       moveX : 10
     },
     ufo : {
-      type  : "ufo",
       color : "white",
       src   : "images/dot/ufo.dot",
       x : 0 , y : 0,
       moveX : 10
     },
     bullet : {
-      type  : "bullet",
       color : "white",
       src   : "images/dot/bullet.dot",
       x : 0 , y : 0,
       moveX : 10
     },
+    invader_effect_1 : {
+      color : "white",
+      src   : "images/dot/invader_effect_1.dot",
+      x : 0 , y : 0,
+    },
 
     tochika : {
-      type  : "tochika",
       color : "red",
       src   : "images/dot/tochika.dot",
       w     : 72
@@ -119,6 +120,7 @@
     this.image_bit_set(__options.cannon.src);
     this.image_bit_set(__options.ufo.src);
     this.image_bit_set(__options.bullet.src);
+    this.image_bit_set(__options.invader_effect_1.src);
     this.image_bit_set(__options.tochika.src , __options.tochika.w);
   };
 
@@ -139,6 +141,15 @@
     }
     for(var i in __options.invaders){
       for(var j in __options.invaders[i]){
+        if(typeof __options.invaders[i][j][0].shoot_flg !== "undefined"){
+          if(__options.invaders[i][j][0].shoot_flg <= 2){
+            __options.invaders[i][j][0].shoot_flg++;
+          }
+          else{
+            __options.invaders[i].splice(j,1);
+            continue;
+          }
+        }
         this.image(__options.invaders[i][j][this.pattern]);
       }
     }
@@ -284,13 +295,37 @@
     for(var i in this.shoots){
       var w = 1 * __options.cannon.bitSize;
       var h = 2 * __options.cannon.bitSize;
-      if(this.shoots[i].y < h){
+      // collision
+      if(this.shoot_collision(this.shoots[i].x , this.shoots[i].y , w , h)){
+        this.shoots.splice(i,1);
+      }
+      else if(this.shoots[i].y < h){
         this.shoots.splice(i,1);
       }
       else{
         this.ctx.fillStyle   = "white";
         this.ctx.fillRect(this.shoots[i].x - __options.cannon.bitSize , this.shoots[i].y , w , h);
         this.shoots[i].y -= __options.cannon.bitSize * 2;
+      }
+    }
+  };
+
+  MAIN.prototype.shoot_collision = function(x , y , w , h){
+    var inv = __options.invaders;
+    for(var i in inv){
+      for(var j in inv[i]){
+        var ix = inv[i][j][0].x;
+        var iy = inv[i][j][0].y;
+        var iw = __options.bitmap_size.w;
+        var ih = __options.bitmap_size.h;
+        if(ix <= x && x <= ix + iw
+        && iy <= y - h && y <= iy + ih){
+          for(var k=0; k<inv[i][j].length; k++){
+            inv[i][j][k].src = __options.invader_effect_1.src;
+            inv[i][j][k].shoot_flg = 1;
+          }
+          return true;
+        }
       }
     }
   };
