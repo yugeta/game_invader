@@ -11,18 +11,17 @@
       x : 0 , y : 0,
       moveX : 10
     },
+    cannon_shoot : {
+      w : 1,
+      h : 3
+    },
     ufo : {
       color : "white",
       src   : "images/dot/ufo.dot",
       x : 0 , y : 0,
       moveX : 10
     },
-    bullet : {
-      color : "white",
-      src   : "images/dot/bullet.dot",
-      x : 0 , y : 0,
-      moveX : 10
-    },
+    
     invader_effect_1 : {
       color : "white",
       src   : "images/dot/invader_effect_1.dot",
@@ -62,7 +61,16 @@
       margin : 10, // display-margin
       move_x : 4, // [1:right , -1:left]
       move_y : 4
-    }
+    },
+    bullet : {
+      color : "white",
+      x : 0 , y : 0,
+      moveY : 4
+    },
+    bullet_anim : [
+      "images/dot/bullet_1.dot",
+      "images/dot/bullet_2.dot"
+    ]
   };
 
   var MAIN = function(canvas_selector){
@@ -118,9 +126,11 @@
     for(var i=0; i<bitmap_files.length; i++){
       this.image_bit_set(bitmap_files[i]);
     }
+    for(var i=0; i<__options.bullet_anim.length; i++){
+      this.image_bit_set(__options.bullet_anim[i]);
+    }
     this.image_bit_set(__options.cannon.src);
     this.image_bit_set(__options.ufo.src);
-    this.image_bit_set(__options.bullet.src);
     this.image_bit_set(__options.invader_effect_1.src);
     this.image_bit_set(__options.tochika.src , __options.tochika.w);
   };
@@ -323,9 +333,11 @@
 
   MAIN.prototype.animation_shoot = function(){
     if(!this.shoots.length){return;}
+    var bitsize = this.image_cache[__options.cannon.src].bitsize;
+    var w = bitsize * __options.cannon_shoot.w;
+    var h = bitsize * __options.cannon_shoot.h;
     for(var i in this.shoots){
-      var w = 1 * __options.cannon.bitSize;
-      var h = 2 * __options.cannon.bitSize;
+      
       // collision
       if(this.shoot_collision_tochika(this.shoots[i].x , this.shoots[i].y , w , h)){
         this.shoots.splice(i,1);
@@ -338,10 +350,57 @@
       }
       else{
         this.ctx.fillStyle   = "white";
-        this.ctx.fillRect(this.shoots[i].x - __options.cannon.bitSize , this.shoots[i].y , w , h);
-        this.shoots[i].y -= __options.cannon.bitSize * 2;
+        this.ctx.fillRect(this.shoots[i].x - bitsize , this.shoots[i].y , w , h);
+        this.shoots[i].y -= bitsize * 2;
       }
     }
+  };
+
+  MAIN.prototype.animation_bullet = function(){
+    if(typeof this.bullets === "undefined" || !this.bullets.length){return;}
+    var current_time = (+new Date());
+
+    // アニメーションパターンのフレーム感覚
+    if(typeof this.bullet_anim_time === "undefined"){
+      this.bullet_anim_time = current_time;
+    }
+
+    // アニメーションパターンの切り替え
+    if(typeof this.bullet_anim_num === "undefined"){
+      this.bullet_anim_num = 0;
+    }
+    else if(current_time - this.bullet_anim_time > 50){
+      this.bullet_anim_time = current_time;
+      this.bullet_anim_num++;
+      if(this.bullet_anim_num >= __options.bullet_anim.length){
+        this.bullet_anim_num = 0;
+      }
+    }
+
+    var bitsize = this.image_cache[__options.bullet_anim[this.bullet_anim_num]].bitsize;
+    for(var i in this.bullets){
+      this.bullets[i].y += bitsize;
+      var y = this.bullets[i].y;
+
+      if(y > this.canvas_elm.offsetHeight){
+        this.bullets[i] = null;
+      }
+      else{
+        var option = {
+          x : this.bullets[i].x,
+          y : y = y,
+          src : __options.bullet_anim[this.bullet_anim_num],
+          color : __options.bullet.color
+        };
+        this.image(option);
+      }
+    }
+    var newArr = [];
+    for(var i in this.bullets){
+      if(!this.bullets[i]){continue;}
+      newArr.push(this.bullets[i]);
+    }
+    this.bullets = newArr;
   };
 
   MAIN.prototype.shoot_collision_invader = function(x , y , w , h){
@@ -370,7 +429,7 @@
       var ty = __options.tochikas[i].y;
       var tw = __options.tochika.w;
       var th = __options.tochikas[i].h;
-      if(tx <= x && x + w <= tx + tw
+      if(tx <= x && x <= tx + tw
       && ty <= y + h && y <= ty + th){
         return this.tochika_scrape_shoot(__options.tochikas[i] , x , y);
       }
@@ -381,28 +440,23 @@
     // 衝突したtochikaの下部分を検出
     var x = shoot_x - tochika_data.x;
     var y = shoot_y - tochika_data.y;
-    var dot_x = parseInt(x / tochika_data.bitsize , 10);
-    var dot_y = parseInt(y / tochika_data.bitsize , 10);
-    // 当たった座標のドット部分を選択
-    if(tochika_data.bitmap[dot_y][dot_x] == 1){
-      // 衝突箇所以下を削除
-      for(var i=tochika_data.bitmap.length-1; i>=dot_y; i--){
-        if(tochika_data.bitmap[i][dot_x] != 1){continue;}
-        var str = tochika_data.bitmap[i];
-        tochika_data.bitmap[i] = str.slice(0,dot_x).concat("0",str.slice(dot_x+1));
-        return true;
-      }
+    var dot_x = Math.round(x / tochika_data.bitsize);
+    var dot_y = Math.round(y / tochika_data.bitsize);
+
+    if(typeof tochika_data.bitmap[dot_y] === "undefined"){
+      dot_y = dot_y < 0 ? 0 : tochika_data.bitmap.length-1;
     }
-    // for(var i=tochika_data.bitmap.length-1; i>=0; i--){
-    //   console.log();
-    //   if(tochika_data.bitmap[i][dot_x] != 1){continue;}
-    //   // bitmapから下2ドット分を削除
-    //   var str = tochika_data.bitmap[i];
-    //   tochika_data.bitmap[i] = str.slice(0,dot_x).concat("0",str.slice(dot_x+1));
-    //   // tochika_data.bitmap[i] = "000000000000000000000000";
-    //   // tochika_data.bitmap[i-1][dot_x] = 0;
-    //   return true;
-    // }
+    if(typeof tochika_data.bitmap[dot_y][dot_x] === "undefined"){
+      dot_x = dot_x < 0 ? 0 : tochika_data.bitmap[dot_y].length -1;
+    }
+
+    // 当たった座標のドット部分を選択 衝突箇所以下を削除
+    for(var i=tochika_data.bitmap.length-1; i>=0; i--){
+      if(tochika_data.bitmap[i][dot_x] != 1){continue;}
+      var str = tochika_data.bitmap[i];
+      tochika_data.bitmap[i] = str.slice(0,dot_x).concat("0",str.slice(dot_x+1));
+      return true;
+    }
     return false;
   };
 
@@ -421,6 +475,7 @@
     this.nextPattern(300);
     this.view();
     this.animation_roop(30);
+    this.invader_bullet();
   }
   MAIN.prototype.nextPattern = function(frame_rate){
     this.prev_time = this.prev_time || 0;
@@ -452,7 +507,6 @@
     }
     // Dead end ->
     else if(move_x > 0 && pos.max > window_max){
-      // move_x = window_max - pos.max;
       this.move_y_count = 1;
       __options.invader_config.move_x = -__options.invader_config.move_x;
       move_x = 0;
@@ -460,7 +514,6 @@
     }
     // <- Dead end
     else if(move_x < 0 && pos.min < window_min){
-      // move_x = window_min - pos.min;
       this.move_y_count = 1;
       __options.invader_config.move_x = -__options.invader_config.move_x;
       move_x = 0;
@@ -498,7 +551,6 @@
 
   MAIN.prototype.invader_move_set = function(x,y){
     var inv = __options.invaders;
-    var w   = __options.bitmap_size.w;
     for(var i in inv){
       for(var j in inv[i]){
         for(var k in inv[i][j]){
@@ -507,6 +559,43 @@
         }
       }
     }
+  };
+
+  // 各列の一番下のインベーダーがミサイルを発射する（最大同時数:2）
+  MAIN.prototype.invader_bullet = function(){
+    if(typeof this.bullets === "undefined"){
+      this.bullets = [];
+    }
+    this.invader_bullet_add();
+    this.animation_bullet();
+  };
+  MAIN.prototype.invader_bullet_add = function(){
+    if(this.bullets.length >= __options.bullet_anim.length){return;}
+    if(Math.floor(Math.random() * Math.floor(100)) > 10){return;}
+    var bottoms = this.get_invader_bottoms();
+    var keys    = Object.keys(bottoms);
+    if(!bottoms || !keys.length){return;}
+    var rnd_num = Math.floor(Math.random() * Math.floor(keys.length));
+    var data = {
+      x : bottoms[keys[rnd_num]].x,
+      y : bottoms[keys[rnd_num]].y + __options.bitmap_size.h
+    };
+    this.bullets.push(data);
+  };
+
+  // 各列の最下部インベーダー一覧の取得
+  MAIN.prototype.get_invader_bottoms = function(){
+    var inv = __options.invaders;
+    var bottoms = {};
+    for(var i=inv.length-1; i>=0; i--){
+      for(var j in inv[i]){
+        if(!inv[i][j]){continue;}
+        var x = inv[i][j][0].x;
+        if(typeof bottoms[x] !== "undefined"){continue;}
+        bottoms[x] = inv[i][j][0];
+      }
+    }
+    return bottoms;
   };
 
 
