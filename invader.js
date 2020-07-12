@@ -70,6 +70,11 @@
     bullet_anim : [
       "images/dot/bullet_1.dot",
       "images/dot/bullet_2.dot"
+    ],
+    del_block : [
+      "01110",
+      "01010",
+      "00100"
     ]
   };
 
@@ -285,7 +290,58 @@
       char2 = (zero + char2).slice(-str_count);
       this.image_cache[src].bitmap.push(char2);
     }
+    // 上下左右の余白（マージン）値の取得
+    this.set_bitmap_margin(src , size);
   };
+  // 上下左右の余白（マージン）値の取得
+  MAIN.prototype.set_bitmap_margin = function(src , bitsize){
+    if(typeof this.image_cache[src] === "undefined"){return;}
+    var cache = this.image_cache[src];
+    if(typeof cache.bitmap === "undefined"){return;}
+    var bitmap = cache.bitmap;
+    cache.margin = {
+      top    : 0,
+      bottom : 0,
+      left   : 0,
+      right  : 0
+    };
+
+    for(var i=0; i<bitmap.length; i++){
+      if(bitmap[i].indexOf("1") !== -1){
+        // cache.margin.top = i;
+        cache.margin.top = i * bitsize;
+        break;
+      }
+    }
+
+    for(var i=bitmap.length-1; i>=0; i--){
+      if(bitmap[i].indexOf("1") !== -1){
+        // cache.margin.bottom = bitmap.length-1 - i;
+        cache.margin.bottom = (bitmap.length-1 - i) * bitsize;
+        break;
+      }
+    }
+
+    var bitmap2 = new LIB().bin_convert_col2row(bitmap);
+
+    for(var i=0; i<bitmap2.length; i++){
+      if(bitmap2[i].indexOf("1") !== -1){
+        // cache.margin.right = i;
+        cache.margin.right = i * bitsize;
+        break;
+      }
+    }
+
+    for(var i=bitmap2.length-1; i>=0; i--){
+      if(bitmap2[i].indexOf("1") !== -1){
+        // cache.margin.left = bitmap2.length-1 - i;
+        cache.margin.left = (bitmap2.length-1 - i) * bitsize;
+        break;
+      }
+    }
+  };
+
+
   MAIN.prototype.image_bit_make = function(bitmap , bitsize , color , x , y){
     if(!bitmap){return;}
     color = color || "white";
@@ -336,23 +392,32 @@
     var bitsize = this.image_cache[__options.cannon.src].bitsize;
     var w = bitsize * __options.cannon_shoot.w;
     var h = bitsize * __options.cannon_shoot.h;
+    var target = null;
     for(var i in this.shoots){
       
-      // collision
-      if(this.shoot_collision_tochika(this.shoots[i].x , this.shoots[i].y , w , h)){
-        this.shoots.splice(i,1);
+      // collision tochika
+      if(target = this.collision_tochika(this.shoots[i].x , this.shoots[i].y , w , h)){
+        var flg = this.tochika_scrape_shoot(target , this.shoots[i].x , this.shoots[i].y);
+        if(flg){
+          this.shoots.splice(i,1);
+          continue;
+        }
       }
+      // collosion invader
       else if(this.shoot_collision_invader(this.shoots[i].x , this.shoots[i].y , w , h)){
         this.shoots.splice(i,1);
+        continue;
       }
+      // 画面外
       else if(this.shoots[i].y < h){
         this.shoots.splice(i,1);
+        continue;
       }
-      else{
-        this.ctx.fillStyle   = "white";
-        this.ctx.fillRect(this.shoots[i].x - bitsize , this.shoots[i].y , w , h);
-        this.shoots[i].y -= bitsize * 2;
-      }
+      
+      // 通常表示
+      this.ctx.fillStyle   = "white";
+      this.ctx.fillRect(this.shoots[i].x - bitsize , this.shoots[i].y , w , h);
+      this.shoots[i].y -= bitsize * 2;
     }
   };
 
@@ -377,23 +442,42 @@
       }
     }
 
-    var bitsize = this.image_cache[__options.bullet_anim[this.bullet_anim_num]].bitsize;
+    var cache   = this.image_cache[__options.bullet_anim[this.bullet_anim_num]];
+    if(!cache){return;}
+    var bitsize = cache.bitsize;
     for(var i in this.bullets){
       this.bullets[i].y += bitsize;
       var y = this.bullets[i].y;
+      var target = null;
 
+      // 画面外に出たbulletは削除する
       if(y > this.canvas_elm.offsetHeight){
         this.bullets[i] = null;
+        continue;
       }
-      else{
-        var option = {
-          x : this.bullets[i].x,
-          y : y = y,
-          src : __options.bullet_anim[this.bullet_anim_num],
-          color : __options.bullet.color
-        };
-        this.image(option);
+
+      // tochika collision
+      else if(target = this.collision_tochika(
+        this.bullets[i].x , 
+        this.bullets[i].y , 
+        __options.bitmap_size.w , 
+        __options.bitmap_size.h ,
+        cache.margin )){
+        var flg = this.tochika_scrape_bullet(target , this.bullets[i].x + (__options.bitmap_size.h/2) , this.bullets[i].y + __options.bitmap_size.h);
+        if(flg === true){
+          this.bullets[i] = null;
+          continue;
+        }
       }
+
+      // 通常表示処理
+      var option = {
+        x : this.bullets[i].x,
+        y : y = y,
+        src : __options.bullet_anim[this.bullet_anim_num],
+        color : __options.bullet.color
+      };
+      this.image(option);
     }
     var newArr = [];
     for(var i in this.bullets){
@@ -411,8 +495,8 @@
         var iy = inv[i][j][0].y;
         var iw = __options.bitmap_size.w;
         var ih = __options.bitmap_size.h;
-        if(ix <= x && x <= ix + iw
-        && iy <= y - h && y <= iy + ih){
+        if(ix < x + w && x < ix + iw
+        && iy < y - h && y < iy + ih){
           for(var k=0; k<inv[i][j].length; k++){
             inv[i][j][k].src = __options.invader_effect_1.src;
             inv[i][j][k].shoot_flg = 1;
@@ -423,17 +507,22 @@
     }
   };
 
-  MAIN.prototype.shoot_collision_tochika = function(x , y , w , h){
+  MAIN.prototype.collision_tochika = function(x , y , w , h , margin){
     for(var i in __options.tochikas){
       var tx = __options.tochikas[i].x;
       var ty = __options.tochikas[i].y;
       var tw = __options.tochika.w;
       var th = __options.tochikas[i].h;
-      if(tx <= x && x <= tx + tw
-      && ty <= y + h && y <= ty + th){
-        return this.tochika_scrape_shoot(__options.tochikas[i] , x , y);
+      var margin_top    = margin ? margin.top    : 0;
+      var margin_bottom = margin ? margin.bottom : 0;
+      var margin_left   = margin ? margin.left   : 0;
+      var margin_right  = margin ? margin.right  : 0;
+      if(tx + margin_left < x + w && x <= tx + tw - margin_right
+      && ty < y + h - margin_bottom && y < ty + th - margin_bottom){
+        return __options.tochikas[i];
       }
     }
+    return false;
   };
 
   MAIN.prototype.tochika_scrape_shoot = function(tochika_data , shoot_x , shoot_y){
@@ -442,6 +531,7 @@
     var y = shoot_y - tochika_data.y;
     var dot_x = Math.round(x / tochika_data.bitsize);
     var dot_y = Math.round(y / tochika_data.bitsize);
+    dot_x -= 1; // ドット絵のズレ対応
 
     if(typeof tochika_data.bitmap[dot_y] === "undefined"){
       dot_y = dot_y < 0 ? 0 : tochika_data.bitmap.length-1;
@@ -450,11 +540,51 @@
       dot_x = dot_x < 0 ? 0 : tochika_data.bitmap[dot_y].length -1;
     }
 
+    var del_block = "0";
     // 当たった座標のドット部分を選択 衝突箇所以下を削除
     for(var i=tochika_data.bitmap.length-1; i>=0; i--){
       if(tochika_data.bitmap[i][dot_x] != 1){continue;}
+      // 座標判定
+      if(shoot_y >= tochika_data.y + ((i-1) * tochika_data.bitsize)){
+        return false;
+      }
       var str = tochika_data.bitmap[i];
-      tochika_data.bitmap[i] = str.slice(0,dot_x).concat("0",str.slice(dot_x+1));
+      tochika_data.bitmap[i] = str.slice(0 , dot_x).concat(del_block , str.slice(dot_x + del_block.length));
+      return true;
+    }
+    return false;
+  };
+
+  MAIN.prototype.tochika_scrape_bullet = function(tochika_data , bullet_x , bullet_y){
+    // 衝突したtochikaの下部分を検出
+    var x = bullet_x - tochika_data.x;
+    var y = bullet_y - tochika_data.y;
+    var dot_x = Math.round(x / tochika_data.bitsize);
+    var dot_y = Math.round(y / tochika_data.bitsize);
+
+    if(typeof tochika_data.bitmap[dot_y] === "undefined"){
+      dot_y = dot_y < 0 ? 0 : tochika_data.bitmap.length -1;
+    }
+    if(typeof tochika_data.bitmap[dot_y][dot_x] === "undefined"){
+      dot_x = dot_x < 0 ? 0 : tochika_data.bitmap[dot_y].length -1;
+    }
+
+    // 当たった座標のドット部分を選択 衝突箇所以下を削除
+    for(var i=0; i<tochika_data.bitmap.length; i++){
+      if(tochika_data.bitmap[i][dot_x] != 1){continue;}
+      var zero = Array(tochika_data.bitmap[i].length + 1).join("0");
+
+      for(var j=0; j<__options.del_block.length; j++){
+        num = i + j;
+        if(typeof tochika_data.bitmap[num] === "undefined" || !tochika_data.bitmap[num]){break;}
+        var str      = tochika_data.bitmap[num];
+        var shift    = str.length - dot_x - __options.del_block[j].length + Math.ceil(__options.del_block[j].length/2);
+        shift        = shift > 0 ? shift : 0;
+        var delbit   = (String("0b"+ __options.del_block[j]) << shift).toString(2);
+        newbit = ((String("0b"+str)) & ~String("0b"+delbit)).toString(2);
+        newbit = (zero + String(newbit)).slice(-str.length);
+        tochika_data.bitmap[num] = newbit;
+      }
       return true;
     }
     return false;
@@ -684,6 +814,17 @@
     flg = (flg) ? flg : false;
     if (target.addEventListener){target.addEventListener(mode, func, flg)}
     else{target.attachEvent('on' + mode, function(){func.call(target , window.event)})}
+  };
+
+  LIB.prototype.bin_convert_col2row = function(bitmap){
+    var newmap = [];
+    for(var i in bitmap){
+      for(var j=0; j<bitmap[i].length; j++){
+        if(typeof newmap[j] === "undefined"){newmap[j] = "";}
+        newmap[j] += bitmap[i][j];
+      }
+    }
+    return newmap;
   };
 
   var AJAX = function(option){
