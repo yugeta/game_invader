@@ -75,19 +75,48 @@
       "01110",
       "01010",
       "00100"
-    ]
+    ],
+
+    game_start : {
+      color_fill   : "black",
+      color_stroke : "blue",
+      width_stroke : 2,
+      text_color   : "white",
+      text_size    : 16,
+      text_width   : 0.9,
+      text_font    : "sans-serif",
+      radius       : 4,
+      width        : 0.7,
+      height       : 0.3
+    },
+    game_over : {
+      color_fill   : "black",
+      color_stroke : "red",
+      width_stroke : 2,
+      text_color   : "white",
+      text_size    : 16,
+      text_width   : 0.9,
+      text_font    : "sans-serif",
+      radius       : 4,
+      width        : 0.7,
+      height       : 0.3
+    }
   };
 
   var MAIN = function(canvas_selector){
     this.canvas_selector = canvas_selector || "canvas";
-    this.shoots = [];
     this.pattern = 0;
+    this.shoots = [];
+    this.view_flg = "game_start";
 
     this.setCanvas(this.canvas_selector);
     this.set_imageMax();
     this.event_set();
     this.bitmap_load();
-    this.view();
+
+    // this.game_start();
+
+    // this.view();
     this.animation_roop();
   };
 
@@ -125,11 +154,8 @@
     var bitmap_files = [];
     for(var i in __options.invader_src){
       for(var j=0; j<__options.invader_src[i].length; j++){
-        bitmap_files.push(__options.invader_src[i][j]);
+        this.image_bit_set(__options.invader_src[i][j]);
       }
-    }
-    for(var i=0; i<bitmap_files.length; i++){
-      this.image_bit_set(bitmap_files[i]);
     }
     for(var i=0; i<__options.bullet_anim.length; i++){
       this.image_bit_set(__options.bullet_anim[i]);
@@ -358,21 +384,34 @@
   };
 
   MAIN.prototype.animation_roop = function(time){
-    var func = (function(e){this.animation(e)}).bind(this);
+    switch(this.view_flg){
+      case "game_start":
+        this.game_start();
+        break;
 
-    this.animation_proc();
+      case "game_over":
+        this.game_over();
+        break;
 
-    if(window.requestAnimationFrame
-    ||  window.webkitRequestAnimationFrame
-    ||  window.mozRequestAnimationFrame
-    ||  window.oRequestAnimationFrame
-    ||  window.msRequestAnimationFrame){
-      window.requestAnimationFrame(func);
+      default:
+        var func = (function(e){this.animation(e)}).bind(this);
+
+        this.animation_proc();
+    
+        if(window.requestAnimationFrame
+        ||  window.webkitRequestAnimationFrame
+        ||  window.mozRequestAnimationFrame
+        ||  window.oRequestAnimationFrame
+        ||  window.msRequestAnimationFrame){
+          window.requestAnimationFrame(func);
+        }
+        else{
+          time = time || 10;
+          anim_flg = setTimeout(func , time);
+        }
+        break;
     }
-    else{
-      time = time || 10;
-      anim_flg = setTimeout(func , time);
-    }
+    
   };
 
   MAIN.prototype.animation_proc = function(){
@@ -462,12 +501,25 @@
         this.bullets[i].y , 
         __options.bitmap_size.w , 
         __options.bitmap_size.h ,
-        cache.margin )){
+        cache.margin
+      )){
         var flg = this.tochika_scrape_bullet(target , this.bullets[i].x + (__options.bitmap_size.h/2) , this.bullets[i].y + __options.bitmap_size.h);
         if(flg === true){
           this.bullets[i] = null;
           continue;
         }
+      }
+
+      // 自機collision
+      else if(this.collosion_bullet_own(
+        this.bullets[i].x , 
+        this.bullets[i].y , 
+        __options.bitmap_size.w , 
+        __options.bitmap_size.h ,
+        cache.margin
+      )){
+        this.view_flg = "game_over";
+        break;;
       }
 
       // 通常表示処理
@@ -588,6 +640,29 @@
       return true;
     }
     return false;
+  };
+
+  // invader-bulletと自機の衝突確認
+  MAIN.prototype.collosion_bullet_own = function(x , y , w , h , margin){
+    var tx = __options.cannon.x;
+    var ty = __options.cannon.y;
+    var tw = __options.bitmap_size.w;
+    var th = __options.bitmap_size.h;
+    var margin_top    = margin ? margin.top    : 0;
+    var margin_bottom = margin ? margin.bottom : 0;
+    var margin_left   = margin ? margin.left   : 0;
+    var margin_right  = margin ? margin.right  : 0;
+// console.log(tx+"/"+ty+":"+tw+"/"+th);
+    if(tx + margin_left < x + w
+    && x <= tx + tw - margin_right
+    && ty < y + h - margin_bottom
+    && y < ty + th - margin_bottom){
+      return true;
+    }
+    else{
+      return false;
+    }
+    
   };
 
   MAIN.prototype.cannon_move = function(pos){
@@ -747,7 +822,24 @@
   };
 
   MAIN.prototype.click = function(e){
-    this.shoot_add();
+    switch(this.view_flg){
+      case "game_start":
+        this.view_flg = "play";
+        this.data_reset();
+        // this.view();
+        this.animation_roop();
+        break;
+      case "game_over":
+        this.view_flg = "play";
+        this.data_reset();
+        // this.view();
+        this.animation_roop();
+        break;
+      default:
+        this.shoot_add();
+        break;
+    }
+    
   };
 
   MAIN.prototype.shoot_add = function(){
@@ -916,6 +1008,70 @@
   }
 
 
+  MAIN.prototype.game_start = function(){
+    this.view_flg = "game_start";
+    this.dialog_window(__options.game_start);
+    this.dialog_text(__options.game_start,[
+      {text:"INVADER" , size:60 , margin:20 , weight:"bold" , color:"blue"},
+      {text:"画面をクリックすると"},
+      {text:"ゲームが開始します"}
+    ]);
+  };
+
+  MAIN.prototype.game_over = function(){
+    this.view_flg = "game_over";
+    this.dialog_window(__options.game_over);
+    this.dialog_text(__options.game_over , [
+      {text:"Game over", size:60 , margin:20 , color:"red" , weight:"bold"},
+      {text:"画面をクリックすると"},
+      {text:"ゲームが開始します"}
+    ]);
+  };
+
+  MAIN.prototype.data_reset = function(){console.log("hoge");
+    this.pattern = 0;
+    this.shoots  = [];
+    this.bullets = [];
+    this.init_invaders_info();
+    this.init_tochilas_info();
+  };
+
+  MAIN.prototype.dialog_window = function(options){
+    var w = this.canvas_elm.offsetWidth  * options.width,
+        h = this.canvas_elm.offsetHeight * options.height,
+        x = this.canvas_elm.offsetWidth  / 2 * (1 - options.width),
+        y = this.canvas_elm.offsetHeight / 2 * (1 - options.height),
+        r = options.radius;
+    h = h > 180 ? h : 180;
+    this.ctx.fillStyle   = options.color_fill;
+    this.ctx.strokeStyle = options.color_stroke;
+    this.ctx.lineWidth   = options.width_stroke * 2;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x,y + r);
+    this.ctx.arc(x+r , y+h-r , r , Math.PI , Math.PI*0.5 , true);
+    this.ctx.arc(x+w-r , y+h-r , r , Math.PI*0.5,0 , 1);
+    this.ctx.arc(x+w-r , y+r , r , 0 , Math.PI*1.5 , 1);
+    this.ctx.arc(x+r , y+r , r , Math.PI*1.5 , Math.PI , 1);   
+    this.ctx.closePath();
+    this.ctx.stroke();
+    this.ctx.fill();
+  }
+  MAIN.prototype.dialog_text = function(options,texts){
+    var w = (this.canvas_elm.offsetWidth * options.width) * options.text_width;
+    var x = this.canvas_elm.offsetWidth / 2;
+    var y = this.canvas_elm.offsetHeight / 2 * (1 - options.height) + 30;
+
+    for(var i=0; i<texts.length; i++){
+      this.ctx.fillStyle    = texts[i].color    || options.text_color;
+      this.ctx.textAlign    = texts[i].align    || "center";
+      this.ctx.textBaseline = texts[i].baseline || "top";
+      var font_size         = texts[i].size     || options.text_size;
+      var font_weight       = texts[i].weight   || "";
+      this.ctx.font         = font_weight +" "+ font_size +"px '"+ options.text_font +"' ";
+      this.ctx.fillText(texts[i].text , x, y , w);
+      y += font_size + (texts[i].margin || 10);
+    }
+  };
 
 
 
