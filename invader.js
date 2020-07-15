@@ -100,6 +100,16 @@
       radius       : 4,
       width        : 0.7,
       height       : 0.3
+    },
+    sounds : {
+      "shoot" : {
+        mode : "se",
+        src  : "sounds/shoot.mp3"
+      },
+      "bgm"   : {
+        mode : "loop",
+        src  : "sounds/bgm.mp3"
+      }
     }
   };
 
@@ -113,6 +123,7 @@
     this.set_imageMax();
     this.event_set();
     this.bitmap_load();
+    this.sound_load();
 
     // this.game_start();
 
@@ -676,6 +687,7 @@
   };
 
   MAIN.prototype.animation = function(){
+    this.bgm_loop();
     this.clear();
     this.nextPattern(300);
     this.view();
@@ -827,12 +839,15 @@
         this.view_flg = "play";
         this.data_reset();
         // this.view();
+        this.bgm_start();
         this.animation_roop();
+        
         break;
       case "game_over":
         this.view_flg = "play";
         this.data_reset();
         // this.view();
+        this.bgm_start();
         this.animation_roop();
         break;
       default:
@@ -848,6 +863,9 @@
         x : __options.cannon.x + (__options.bitmap_size.w / 2),
         y : __options.cannon.y + (__options.cannon.bitSize * 4)
       });
+      this.audio.shoot.currentTime = 0
+      this.audio.shoot.play();
+      
     }
   };
 
@@ -896,6 +914,28 @@
     this.mousePos = null;
   };
 
+  MAIN.prototype.sound_load = function(){
+    if(typeof __options.sounds === "undefined" || !Object.keys(__options.sounds).length){return;}
+    this.audio = {};
+    for(var i in __options.sounds){
+      this.audio[i] = new Audio(__options.sounds[i].src);
+      this.audio[i].onloadedmetadata = (function(target){
+        console.log(target);
+      }).bind(this , this.audio[i]);
+    }
+  };
+
+  MAIN.prototype.bgm_start = function(){
+    this.audio.bgm.currentTime = 0;
+    this.audio.bgm.play();
+  };
+  MAIN.prototype.bgm_loop = function(){
+    if(this.audio.bgm.currentTime + 0.300 < this.audio.bgm.duration){return;}
+    this.audio.bgm.currentTime = 0;
+  };
+  MAIN.prototype.bgm_stop = function(){console.log("bgm-stop");
+    this.audio.bgm.pause();
+  };
 
 
 
@@ -924,7 +964,6 @@
 		var httpoj = this.createHttpRequest();
     if(!httpoj){return;}
     
-		// var option = new MAIN().setOption(options);
 		var data   = this.setQuery(option);
 		if(!data.length){
 			option.method = "get";
@@ -1026,9 +1065,10 @@
       {text:"画面をクリックすると"},
       {text:"ゲームが開始します"}
     ]);
+    this.bgm_stop();
   };
 
-  MAIN.prototype.data_reset = function(){console.log("hoge");
+  MAIN.prototype.data_reset = function(){
     this.pattern = 0;
     this.shoots  = [];
     this.bullets = [];
