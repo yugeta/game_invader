@@ -7,46 +7,46 @@
     cannon : {
       color : "#57F2D6",
       bitSize : 4,
-      src   : "//wordpress.ideacompo.com/wp-content/uploads/invader/cannon.dot",
+      src   : "../images/dot/cannon.dot",
       x : 0 , y : 0,
       moveX : 10
     },
     ufo : {
       color : "white",
-      src   : "//wordpress.ideacompo.com/wp-content/uploads/invader/ufo.dot",
+      src   : "../images/dot/ufo.dot",
       x : 0 , y : 0,
       moveX : 10
     },
     bullet : {
       color : "white",
-      src   : "//wordpress.ideacompo.com/wp-content/uploads/invader/bullet.dot",
+      src   : "../images/dot/bullet.dot",
       x : 0 , y : 0,
       moveX : 10
     },
     invader_effect_1 : {
       color : "white",
-      src   : "//wordpress.ideacompo.com/wp-content/uploads/invader/invader_effect_1.dot",
+      src   : "../images/dot/invader_effect_1.dot",
       x : 0 , y : 0,
     },
 
     tochika : {
       color : "red",
-      src   : "//wordpress.ideacompo.com/wp-content/uploads/invader/tochika.dot",
+      src   : "../images/dot/tochika.dot",
       w     : 72
     },
     
     invader_src : {
       "crab" : [
-        '//wordpress.ideacompo.com/wp-content/uploads/invader/crab_1.dot',
-        "//wordpress.ideacompo.com/wp-content/uploads/invader/crab_2.dot"
+        '../images/dot/crab_1.dot',
+        "../images/dot/crab_2.dot"
       ],
       "octpus" : [
-        "//wordpress.ideacompo.com/wp-content/uploads/invader/octpus_1.dot",
-        "//wordpress.ideacompo.com/wp-content/uploads/invader/octpus_2.dot"
+        "../images/dot/octpus_1.dot",
+        "../images/dot/octpus_2.dot"
       ],
       "squid" : [
-        "//wordpress.ideacompo.com/wp-content/uploads/invader/squid_1.dot",
-        "//wordpress.ideacompo.com/wp-content/uploads/invader/squid_2.dot"
+        "../images/dot/squid_1.dot",
+        "../images/dot/squid_2.dot"
       ]
     },
     invader_row_infos : [

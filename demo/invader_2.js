@@ -24,36 +24,36 @@
   var __images = {
     "crab" : [
       {
-        src : "//wordpress.ideacompo.com/wp-content/uploads/invader/crab_1.png",
+        src : "../images/dot/crab_1.png",
         x : 10, y : 64,
         w : 64, h : 64
       },
       {
-        src : "//wordpress.ideacompo.com/wp-content/uploads/invader/crab_2.png",
+        src : "../images/dot/crab_2.png",
         x : 10, y : 64,
         w : 64, h : 64
       }
     ],
     "octpus" : [
       {
-        src : "//wordpress.ideacompo.com/wp-content/uploads/invader/octpus_1.png",
+        src : "../images/dot/octpus_1.png",
         x : 80, y : 64,
         w : 64, h : 64
       },
       {
-        src : "//wordpress.ideacompo.com/wp-content/uploads/invader/octpus_2.png",
+        src : "../images/dot/octpus_2.png",
         x : 80, y : 64,
         w : 64, h : 64
       }
     ],
     "squid" : [
       {
-        src : "//wordpress.ideacompo.com/wp-content/uploads/invader/squid_1.png",
+        src : "../images/dot/squid_1.png",
         x : 150, y : 64,
         w : 64, h : 64
       },
       {
-        src : "//wordpress.ideacompo.com/wp-content/uploads/invader/squid_2.png",
+        src : "../images/dot/squid_2.png",
         x : 150, y : 64,
         w : 64, h : 64
       }

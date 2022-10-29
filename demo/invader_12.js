@@ -7,7 +7,7 @@
     cannon : {
       color : "#57F2D6",
       bitSize : 4,
-      src   : "https://game-invader.netlify.app/images/dot/cannon.dot",
+      src   : "../images/dot/cannon.dot",
       x : 0 , y : 0,
       moveX : 10
     },
@@ -17,36 +17,36 @@
     },
     ufo : {
       color : "white",
-      src   : "https://game-invader.netlify.app/images/dot/ufo.dot",
+      src   : "../images/dot/ufo.dot",
       x : 0 , y : 0,
       moveX : 10
     },
     
     invader_effect_1 : {
       color : "white",
-      src   : "https://game-invader.netlify.app/images/dot/invader_effect_1.dot",
+      src   : "../images/dot/invader_effect_1.dot",
       x : 0 , y : 0,
     },
 
     tochika : {
       color : "red",
-      src   : "https://game-invader.netlify.app/images/dot/tochika.dot",
+      src   : "../images/dot/tochika.dot",
       w     : 72,
       rate  : 2.5
     },
     
     invader_src : {
       "crab" : [
-        "https://game-invader.netlify.app/images/dot/crab_1.dot",
-        "https://game-invader.netlify.app/images/dot/crab_2.dot"
+        "../images/dot/crab_1.dot",
+        "../images/dot/crab_2.dot"
       ],
       "octpus" : [
-        "https://game-invader.netlify.app/images/dot/octpus_1.dot",
-        "https://game-invader.netlify.app/images/dot/octpus_2.dot"
+        "../images/dot/octpus_1.dot",
+        "../images/dot/octpus_2.dot"
       ],
       "squid" : [
-        "https://game-invader.netlify.app/images/dot/squid_1.dot",
-        "https://game-invader.netlify.app/images/dot/squid_2.dot"
+        "../images/dot/squid_1.dot",
+        "../images/dot/squid_2.dot"
       ]
     },
     invader_row_infos : [
@@ -68,8 +68,8 @@
       moveY : 4
     },
     bullet_anim : [
-      "https://game-invader.netlify.app/images/dot/bullet_1.dot",
-      "https://game-invader.netlify.app/images/dot/bullet_2.dot"
+      "../images/dot/bullet_1.dot",
+      "../images/dot/bullet_2.dot"
     ],
     del_block : [
       "01110",

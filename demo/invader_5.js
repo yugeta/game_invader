@@ -8,7 +8,7 @@
       type : "bit",
       fill : "#57F2D6",
       bitSize : 4,
-      src : "//wordpress.ideacompo.com/wp-content/uploads/invader/cannon.dot",
+      src : "../images/dot/cannon.dot",
       x : 10, y : 200,
       w : 64, h : 64,
       moveX : 10
@@ -17,7 +17,7 @@
       type : "bit",
       fill : "white",
       bitSize : 4,
-      src : "//wordpress.ideacompo.com/wp-content/uploads/invader/ufo.dot",
+      src : "../images/dot/ufo.dot",
       x : 10, y : 10,
       w : 64, h : 64,
       moveX : 10
@@ -27,7 +27,7 @@
         {
           type : "bit",
           fill : "#F22786",
-          src : '//wordpress.ideacompo.com/wp-content/uploads/invader/crab_1.dot',
+          src : '../images/dot/crab_1.dot',
           bitSize : 4,
           x : 10, y : 64,
           w : 64, h : 64
@@ -35,7 +35,7 @@
         {
           type : "bit",
           fill : "#F22786",
-          src : "//wordpress.ideacompo.com/wp-content/uploads/invader/crab_2.dot",
+          src : "../images/dot/crab_2.dot",
           bitSize : 4,
           x : 10, y : 64,
           w : 64, h : 64
@@ -45,7 +45,7 @@
         {
           type : "bit",
           fill : "#57F2D6",
-          src : "//wordpress.ideacompo.com/wp-content/uploads/invader/octpus_1.dot",
+          src : "../images/dot/octpus_1.dot",
           bitSize : 4,
           x : 80, y : 64,
           w : 64, h : 64
@@ -53,7 +53,7 @@
         {
           type : "bit",
           fill : "#57F2D6",
-          src : "//wordpress.ideacompo.com/wp-content/uploads/invader/octpus_2.dot",
+          src : "../images/dot/octpus_2.dot",
           bitSize : 4,
           x : 80, y : 64,
           w : 64, h : 64
@@ -64,7 +64,7 @@
           type : "bit",
           fill : "#68F205",
           bitSize : 4,
-          src : "//wordpress.ideacompo.com/wp-content/uploads/invader/squid_1.dot",
+          src : "../images/dot/squid_1.dot",
           x : 150, y : 64,
           w : 64, h : 64
         },
@@ -72,7 +72,7 @@
           type : "bit",
           fill : "#68F205",
           bitSize : 4,
-          src : "//wordpress.ideacompo.com/wp-content/uploads/invader/squid_2.dot",
+          src : "../images/dot/squid_2.dot",
           x : 150, y : 64,
           w : 64, h : 64
         }
